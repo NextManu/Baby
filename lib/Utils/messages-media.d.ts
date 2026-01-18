@@ -1,116 +1,75 @@
-/// <reference types="node" />
-/// <reference types="node" />
-/// <reference types="node" />
-import { Boom } from '@hapi/boom';
-import { AxiosRequestConfig } from 'axios';
-import type { Logger } from 'pino';
-import { Readable, Transform } from 'stream';
-import { URL } from 'url';
+import { type Transform } from 'stream';
 import { proto } from '../../WAProto';
-import { DownloadableMessage, MediaConnInfo, MediaDecryptionKeyInfo, MediaType, SocketConfig, WAMediaUpload, WAMediaUploadFunction, WAMessageContent } from '../Types';
-import { BinaryNode } from '../WABinary';
-export declare const hkdfInfoKey: (type: MediaType) => string;
-/** generates all the keys required to encrypt/decrypt & sign a media message */
-export declare function getMediaKeys(buffer: Uint8Array | string | null | undefined, mediaType: MediaType): MediaDecryptionKeyInfo;
-export declare const extractImageThumb: (bufferOrFilePath: Readable | Buffer | string, width?: number) => Promise<{
-    buffer: Buffer;
-    original: {
-        width: number | undefined;
-        height: number | undefined;
-    };
-}>;
-export declare const encodeBase64EncodedStringForUpload: (b64: string) => string;
-export declare const generateProfilePicture: (mediaUpload: WAMediaUpload) => Promise<{
-    img: Buffer;
-}>;
-/** gets the SHA256 of the given media message */
-export declare const mediaMessageSHA256B64: (message: WAMessageContent) => string | null | undefined;
-export declare function getAudioDuration(buffer: Buffer | string | Readable): Promise<number | undefined>;
+import { ILogger } from './logger';
+import { AnyMediaMessageContent, AnyMessageContent, MediaGenerationOptions, MessageContentGenerationOptions, MessageGenerationOptions, MessageGenerationOptionsFromContent, MessageUserReceipt, WAMessage, WAMessageContent, WAProto } from '../Types';
+import { MediaDownloadOptions } from './messages-media';
 /**
-  referenced from and modifying https://github.com/wppconnect-team/wa-js/blob/main/src/chat/functions/prepareAudioWaveform.ts
+ * Uses a regex to test whether the string contains a URL, and returns the URL if it does.
+ * @param text eg. hello https://google.com
+ * @returns the URL, eg. https://google.com
  */
-export declare function getAudioWaveform(buffer: Buffer | string | Readable, logger?: Logger): Promise<Uint8Array | undefined>;
-export declare const toReadable: (buffer: Buffer) => Readable;
-export declare const toBuffer: (stream: Readable) => Promise<Buffer>;
-export declare const getStream: (item: WAMediaUpload, opts?: AxiosRequestConfig) => Promise<{
-    readonly stream: Readable;
-    readonly type: "buffer";
-} | {
-    readonly stream: Readable;
-    readonly type: "readable";
-} | {
-    readonly stream: Readable;
-    readonly type: "remote";
-} | {
-    readonly stream: import("fs").ReadStream;
-    readonly type: "file";
-}>;
-/** generates a thumbnail for a given media, if required */
-export declare function generateThumbnail(file: string, mediaType: 'video' | 'image', options: {
-    logger?: Logger;
-}): Promise<{
-    thumbnail: string | undefined;
-    originalImageDimensions: {
-        width: number;
-        height: number;
-    } | undefined;
-}>;
-export declare const getHttpStream: (url: string | URL, options?: AxiosRequestConfig & {
-    isStream?: true;
-}) => Promise<Readable>;
-type EncryptedStreamOptions = {
-    saveOriginalFileIfRequired?: boolean;
-    logger?: Logger;
-    opts?: AxiosRequestConfig;
-};
-export declare const prepareStream: (media: WAMediaUpload, mediaType: MediaType, { logger, saveOriginalFileIfRequired, opts }?: EncryptedStreamOptions) => Promise<{
-    mediaKey: undefined;
-    encWriteStream: Buffer;
-    fileLength: number;
-    fileSha256: Buffer;
-    fileEncSha256: undefined;
-    bodyPath: string | undefined;
-    didSaveToTmpPath: boolean;
-}>;
-export declare const encryptedStream: (media: WAMediaUpload, mediaType: MediaType, { logger, saveOriginalFileIfRequired, opts }?: EncryptedStreamOptions) => Promise<{
-    mediaKey: Buffer;
-    encWriteStream: Readable;
-    bodyPath: string | undefined;
-    mac: Buffer;
-    fileEncSha256: Buffer;
-    fileSha256: Buffer;
-    fileLength: number;
-    didSaveToTmpPath: boolean;
-}>;
-export type MediaDownloadOptions = {
-    startByte?: number;
-    endByte?: number;
-    options?: AxiosRequestConfig<any>;
-};
-export declare const getUrlFromDirectPath: (directPath: string) => string;
-export declare const downloadContentFromMessage: ({ mediaKey, directPath, url }: DownloadableMessage, type: MediaType, opts?: MediaDownloadOptions) => Promise<Transform>;
+export declare const extractUrlFromText: (text: string) => string | undefined;
+export declare const generateLinkPreviewIfRequired: (text: string, getUrlInfo: MessageGenerationOptions["getUrlInfo"], logger: MessageGenerationOptions["logger"]) => Promise<import("../Types").WAUrlInfo | undefined>;
+export declare const prepareWAMessageMedia: (message: AnyMediaMessageContent, options: MediaGenerationOptions) => Promise<proto.Message>;
+export declare const prepareDisappearingMessageSettingContent: (ephemeralExpiration?: number) => proto.Message;
 /**
- * Decrypts and downloads an AES256-CBC encrypted file given the keys.
- * Assumes the SHA256 of the plaintext is appended to the end of the ciphertext
- * */
-export declare const downloadEncryptedContent: (downloadUrl: string, { cipherKey, iv }: MediaDecryptionKeyInfo, { startByte, endByte, options }?: MediaDownloadOptions) => Promise<Transform>;
-export declare function extensionForMediaMessage(message: WAMessageContent): string;
-export declare const getWAUploadToServer: ({ customUploadHosts, fetchAgent, logger, options }: SocketConfig, refreshMediaConn: (force: boolean) => Promise<MediaConnInfo>) => WAMediaUploadFunction;
-/**
- * Generate a binary node that will request the phone to re-upload the media & return the newly uploaded URL
+ * Generate forwarded message content like WA does
+ * @param message the message to forward
+ * @param options.forceForward will show the message as forwarded even if it is from you
  */
-export declare const encryptMediaRetryRequest: (key: proto.IMessageKey, mediaKey: Buffer | Uint8Array, meId: string) => BinaryNode;
-export declare const decodeMediaRetryNode: (node: BinaryNode) => {
-    key: proto.IMessageKey;
-    media?: {
-        ciphertext: Uint8Array;
-        iv: Uint8Array;
-    } | undefined;
-    error?: Boom<any> | undefined;
+export declare const generateForwardMessageContent: (message: WAMessage, forceForward?: boolean) => proto.IMessage;
+export declare const generateWAMessageContent: (message: AnyMessageContent, options: MessageContentGenerationOptions) => Promise<proto.Message>;
+export declare const generateWAMessageFromContent: (jid: string, message: WAMessageContent, options: MessageGenerationOptionsFromContent) => proto.WebMessageInfo;
+export declare const generateWAMessage: (jid: string, content: AnyMessageContent, options: MessageGenerationOptions) => Promise<proto.WebMessageInfo>;
+/** Get the key to access the true type of content */
+export declare const getContentType: (content: WAProto.IMessage | undefined) => keyof proto.IMessage | undefined;
+/**
+ * Normalizes ephemeral, view once messages to regular message content
+ * Eg. image messages in ephemeral messages, in view once messages etc.
+ * @param content
+ * @returns
+ */
+export declare const normalizeMessageContent: (content: WAMessageContent | null | undefined) => WAMessageContent | undefined;
+/**
+ * Extract the true message content from a message
+ * Eg. extracts the inner message from a disappearing message/view once message
+ */
+export declare const extractMessageContent: (content: WAMessageContent | undefined | null) => WAMessageContent | undefined;
+/**
+ * Returns the device predicted by message ID
+ */
+export declare const getDevice: (id: string) => "web" | "unknown" | "android" | "ios" | "desktop";
+/** Upserts a receipt in the message */
+export declare const updateMessageWithReceipt: (msg: Pick<WAMessage, "userReceipt">, receipt: MessageUserReceipt) => void;
+/** Update the message with a new reaction */
+export declare const updateMessageWithReaction: (msg: Pick<WAMessage, "reactions">, reaction: proto.IReaction) => void;
+/** Update the message with a new poll update */
+export declare const updateMessageWithPollUpdate: (msg: Pick<WAMessage, "pollUpdates">, update: proto.IPollUpdate) => void;
+type VoteAggregation = {
+    name: string;
+    voters: string[];
 };
-export declare const decryptMediaRetryData: ({ ciphertext, iv }: {
-    ciphertext: Uint8Array;
-    iv: Uint8Array;
-}, mediaKey: Uint8Array, msgId: string) => proto.MediaRetryNotification;
-export declare const getStatusCodeForMediaRetry: (code: number) => any;
+/**
+ * Aggregates all poll updates in a poll.
+ * @param msg the poll creation message
+ * @param meId your jid
+ * @returns A list of options & their voters
+ */
+export declare function getAggregateVotesInPollMessage({ message, pollUpdates }: Pick<WAMessage, 'pollUpdates' | 'message'>, meId?: string): VoteAggregation[];
+/** Given a list of message keys, aggregates them by chat & sender. Useful for sending read receipts in bulk */
+export declare const aggregateMessageKeysNotFromMe: (keys: proto.IMessageKey[]) => {
+    jid: string;
+    participant: string | undefined;
+    messageIds: string[];
+}[];
+type DownloadMediaMessageContext = {
+    reuploadRequest: (msg: WAMessage) => Promise<WAMessage>;
+    logger: ILogger;
+};
+/**
+ * Downloads the given message. Throws an error if it's not a media message
+ */
+export declare const downloadMediaMessage: <Type extends "buffer" | "stream">(message: WAMessage, type: Type, options: MediaDownloadOptions, ctx?: DownloadMediaMessageContext) => Promise<Type extends "buffer" ? Buffer<ArrayBufferLike> : Transform>;
+/** Checks whether the given message is a media message; if it is returns the inner content */
+export declare const assertMediaContent: (content: proto.IMessage | null | undefined) => proto.Message.IVideoMessage | proto.Message.IImageMessage | proto.Message.IAudioMessage | proto.Message.IDocumentMessage | proto.Message.IStickerMessage;
 export {};
