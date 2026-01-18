@@ -1,26 +1,3 @@
-<h1 align="center">
-  KASHMIRI
-</h1>
-
-<p align="center">
-  <img src="https://dabby.vercel.app/menu.jpg" width="400" style="border-radius:8px;">
-</p>
-
-<p align="center">
-  <strong>Enterprise-Grade WhatsApp Business API</strong>
-</p>
-
-<p align="center">
-  <sub>High-performance modified Baileys library for scalable WhatsApp integrations</sub>
-</p>
-
----
-
-# 🎀 KASHMIRI
-
-> **KASHMIRI** a mod og *Baileys WhatsApp Web API* by **KASHMIRI** 
----
-
 ## ✨ Mafeatures
 ✅ Stabil & lasts long 
 
